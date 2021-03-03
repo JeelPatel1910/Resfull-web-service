@@ -19,6 +19,9 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pproject.ws.SpringApplicationContext;
+import com.pproject.ws.service.UserService;
+import com.pproject.ws.shared.dto.UserDto;
 import com.pproject.ws.ui.model.request.UserLogInRequestModel;
 
 import io.jsonwebtoken.Jwts;
@@ -43,23 +46,27 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
 			);
 		} catch (IOException e) {
-			throw new RuntimeException();
+			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	protected void successfulAuthentication(HttpServletRequest req, HttpServletResponse res, FilterChain chain,
-			Authentication auth) throws IOException, ServletException {
-            String userName = ((User)auth.getPrincipal()).getUsername();
+	protected void successfulAuthentication(HttpServletRequest req,    
+			                                HttpServletResponse res, 
+			                                FilterChain chain,
+			                                Authentication auth) throws IOException, ServletException {
+		String userName = ((User) auth.getPrincipal()).getUsername();
 
-	        String token = Jwts.builder()
-	        		           .setSubject(userName)
-	        		           .setExpiration(new Date(System.currentTimeMillis()+SecurityConstants.EXPIRATION_TIME))
-	        		           .signWith(SignatureAlgorithm.HS512 , SecurityConstants.TOKEN_SECREAT)
-	        		           .compact();
-	        
-	               res.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants .TOKEN_PREFIX+token);
-	          
-	
+		String token = Jwts.builder()
+				           .setSubject(userName)
+				           .setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME))
+				           .signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret())
+				           .compact();
+
+		UserService userService = (UserService) SpringApplicationContext.getBean("userServiceImplements");
+		UserDto userDto = userService.getUser(userName);
+
+		res.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants.TOKEN_PREFIX + token);
+		res.addHeader("UserID", userDto.getUserId());
 	}
 }
